@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{{ ticket.ticket_id }} — ITSM Suite{% endblock %}
+
+{% block breadcrumb %}
+  <a href="{% url 'tickets:list' %}">Tickets</a>
+  <span class="sep">›</span>
+  <span class="current">{{ ticket.ticket_id }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="ticket-id" style="font-size:14px;">{{ ticket.ticket_id }}</span>
+      <span class="badge badge--{{ ticket.status }}">{{ ticket.get_status_display }}</span>
+      <span class="badge priority--{{ ticket.priority }}">{{ ticket.get_priority_display }}</span>
+      {% if ticket.is_overdue %}<span class="overdue-tag">Overdue</span>{% endif %}
+    </div>
+    <div class="page-header__title" style="margin-top:6px;">{{ ticket.title }}</div>
+  </div>
+  <div class="page-header__actions">
+    {% if user.is_agent %}
+      <a href="{% url 'tickets:edit' ticket.pk %}" class="btn btn--secondary">Edit</a>
+      {% if ticket.status not in 'resolved,closed' %}
+        <form method="post" action="{% url 'tickets:resolve' ticket.pk %}" style="display:inline" onsubmit="return confirm('Mark as resolved?')">
+          {% csrf_token %}<button type="submit" class="btn btn--success">✓ Resolve</button>
+        </form>
+      {% endif %}
+      {% if ticket.status == 'resolved' %}
+        <form method="post" action="{% url 'tickets:close' ticket.pk %}" style="display:inline" onsubmit="return confirm('Close this ticket?')">
+          {% csrf_token %}<button type="submit" class="btn btn--secondary">Close</button>
+        </form>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="detail-layout">
+  <!-- Main -->
+  <div class="detail-body">
+    <!-- Description -->
+    <div class="card">
+      <div class="card__header"><span class="card__title">Description</span></div>
+      <div class="card__body">
+        <p class="description-text">{{ ticket.description }}</p>
+        {% if ticket.attachment %}
+          <div style="margin-top:14px;">
+            <a href="{{ ticket.attachment.url }}" class="btn btn--secondary btn--sm" target="_blank">📎 View Attachment</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Comments -->
+    <div class="card">
+      <div class="card__header">
+        <span class="card__title">Comments ({{ comments.count }})</span>
+      </div>
+      <div class="card__body">
+        <div class="timeline" style="margin-bottom:24px;">
+          {% for comment in comments %}
+          <div class="timeline-item">
+            <div class="timeline-avatar">{{ comment.author.first_name|first|default:comment.author.username|first|upper }}</div>
+            <div class="timeline-content {% if comment.is_internal %}internal{% endif %}">
+              <div class="timeline-meta">
+                <span class="timeline-author">{{ comment.author.get_full_name|default:comment.author.username }}</span>
+                <span class="timeline-time">{{ comment.created_at|date:"d M Y, H:i" }}</span>
+                {% if comment.is_internal %}<span class="badge badge--pending" style="font-size:10px;">Internal</span>{% endif %}
+              </div>
+              <div class="timeline-body">{{ comment.body }}</div>
+            </div>
+          </div>
+          {% empty %}
+          <p style="color:var(--text-muted);font-size:13px;">No comments yet.</p>
+          {% endfor %}
+        </div>
+
+        <!-- Add comment -->
+        <form method="post">
+          {% csrf_token %}
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Add Comment</label>
+            {% render_field comment_form.body class="form-control" %}
+          </div>
+          {% if user.is_agent %}
+          <div class="form-check" style="margin-bottom:12px;">
+            {% render_field comment_form.is_internal %}
+            <label for="{{ comment_form.is_internal.id_for_label }}" style="font-size:13px;color:var(--text-secondary);">
+              Internal note (not visible to end user)
+            </label>
+          </div>
+          {% endif %}
+          <button type="submit" class="btn btn--primary">Post Comment</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- History -->
+    {% if history and user.is_agent %}
+    <div class="card">
+      <div class="card__header"><span class="card__title">Activity Log</span></div>
+      <div class="card__body">
+        <div class="history-list">
+          {% for h in history %}
+          <div class="history-item">
+            <span>{{ h.changed_at|date:"d M, H:i" }}</span>
+            <span class="h-field">{{ h.changed_by.username }}</span>
+            changed
+            <span class="h-field">{{ h.field_changed }}</span>
+            from
+            <span>"{{ h.old_value|default:"—" }}"</span>
+            <span class="h-arrow">→</span>
+            <span>"{{ h.new_value }}"</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Sidebar -->
+  <div class="detail-sidebar">
+    <div class="card">
+      <div class="card__header"><span class="card__title">Details</span></div>
+      <div class="card__body">
+        <div class="meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Requester</span>
+            <span class="meta-value">{{ ticket.created_by.get_full_name|default:ticket.created_by.username }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Assigned To</span>
+            <span class="meta-value">{{ ticket.assigned_to.get_full_name|default:"Unassigned" }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Category</span>
+            <span class="meta-value">{{ ticket.category.name|default:"—" }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Created</span>
+            <span class="meta-value">{{ ticket.created_at|date:"d M Y, H:i" }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Updated</span>
+            <span class="meta-value">{{ ticket.updated_at|date:"d M Y, H:i" }}</span>
+          </div>
+          {% if ticket.due_date %}
+          <div class="meta-item">
+            <span class="meta-label">Due Date</span>
+            <span class="meta-value {% if ticket.is_overdue %}overdue-tag{% endif %}">{{ ticket.due_date|date:"d M Y, H:i" }}</span>
+          </div>
+          {% endif %}
+          {% if ticket.resolved_at %}
+          <div class="meta-item">
+            <span class="meta-label">Resolved At</span>
+            <span class="meta-value">{{ ticket.resolved_at|date:"d M Y, H:i" }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if ticket.incidents.exists %}
+    <div class="card">
+      <div class="card__header"><span class="card__title">Related Incidents</span></div>
+      <div class="card__body">
+        {% for inc in ticket.incidents.all %}
+          <a href="{% url 'incidents:detail' inc.pk %}" style="display:block;margin-bottom:6px;font-size:13px;">
+            <span class="ticket-id">{{ inc.incident_id }}</span> {{ inc.title }}
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

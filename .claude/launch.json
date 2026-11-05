@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "itsm",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set USE_SQLITE=True&& set DEBUG=True&& C:/Users/yashr/AppData/Local/Temp/claude/02444c80f55eac19/b90b61ab-5ded-4e57-85bd-4cef808ea048/scratchpad/venv/Scripts/python.exe manage.py runserver 8000 --noreload"],
+      "port": 8000
+    }
+  ]
+}

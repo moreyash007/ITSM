@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Assets / CMDB — ITSM Suite{% endblock %}
+{% block breadcrumb %}<span class="current">Assets / CMDB</span>{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card stat-card--open">
+    <div class="stat-card__label">Total Assets</div>
+    <div class="stat-card__value">{{ total_assets }}</div>
+  </div>
+  <div class="stat-card stat-card--progress">
+    <div class="stat-card__label">In Use</div>
+    <div class="stat-card__value">{{ in_use }}</div>
+  </div>
+  <div class="stat-card stat-card--resolved">
+    <div class="stat-card__label">Available</div>
+    <div class="stat-card__value">{{ available }}</div>
+  </div>
+  <div class="stat-card stat-card--pending">
+    <div class="stat-card__label">Maintenance</div>
+    <div class="stat-card__value">{{ maintenance }}</div>
+  </div>
+</div>
+
+<div class="page-header">
+  <div>
+    <div class="page-header__title">Assets / CMDB</div>
+    <div class="page-header__subtitle">Configuration items and hardware inventory</div>
+  </div>
+  <div class="page-header__actions">
+    {% if user.is_agent %}
+      <a href="{% url 'assets:create' %}" class="btn btn--primary">+ Add Asset</a>
+    {% endif %}
+  </div>
+</div>
+
+<form method="get" class="filters-bar">
+  <input type="text" name="q" value="{{ search|default:'' }}" placeholder="Search by name, tag, serial...">
+  <select name="status">
+    <option value="">All Statuses</option>
+    {% for val, label in status_choices %}<option value="{{ val }}" {% if current_status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <select name="type">
+    <option value="">All Types</option>
+    {% for val, label in type_choices %}<option value="{{ val }}" {% if current_type == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <button type="submit" class="btn btn--secondary">Filter</button>
+  <a href="{% url 'assets:list' %}" class="btn btn--secondary">Clear</a>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Asset Tag</th><th>Name</th><th>Type</th><th>Status</th><th>Location</th><th>Assigned To</th><th>Warranty Expiry</th></tr>
+      </thead>
+      <tbody>
+        {% for asset in page_obj %}
+        <tr>
+          <td><span class="ticket-id">{{ asset.asset_tag }}</span></td>
+          <td><a href="{% url 'assets:detail' asset.pk %}">{{ asset.name }}</a></td>
+          <td><span class="badge badge--pending">{{ asset.get_asset_type_display }}</span></td>
+          <td><span class="badge badge--{{ asset.status }}">{{ asset.get_status_display }}</span></td>
+          <td>{{ asset.location|default:"—" }}</td>
+          <td>{{ asset.assigned_to.get_full_name|default:"—" }}</td>
+          <td style="font-size:12px;color:var(--text-muted);">{{ asset.warranty_expiry|date:"d M Y"|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7"><div class="empty-state"><div class="empty-state__icon">🖥</div><div class="empty-state__title">No assets found</div></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends 'emails/base_email.html' %}
+{% block subject %}New Comment on {{ ticket.ticket_id }}{% endblock %}
+{% block body %}
+<p>A new comment was added to ticket {{ ticket.ticket_id }} by {{ comment.author.get_full_name }}.</p>
+<table class="meta-table">
+  <tr><td>Ticket</td><td>{{ ticket.ticket_id }} — {{ ticket.title }}</td></tr>
+  <tr><td>From</td><td>{{ comment.author.get_full_name }}</td></tr>
+  <tr><td>Time</td><td>{{ comment.created_at|date:"d M Y, H:i" }}</td></tr>
+</table>
+<p style="background:#1a1e28;padding:14px;border-radius:6px;border-left:3px solid #4f7cff;">{{ comment.body|truncatechars:400 }}</p>
+
+{% endblock %}

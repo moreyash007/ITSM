@@ -1,0 +1,13 @@
+{% extends 'emails/base_email.html' %}
+{% block subject %}Ticket Received: {{ ticket.ticket_id }}{% endblock %}
+{% block body %}
+<p>Hi {{ ticket.created_by.first_name|default:ticket.created_by.username }}, your support request has been received and is being reviewed.</p>
+<table class="meta-table">
+  <tr><td>Reference</td><td>{{ ticket.ticket_id }}</td></tr>
+  <tr><td>Title</td><td>{{ ticket.title }}</td></tr>
+  <tr><td>Priority</td><td><span class="badge badge-{{ ticket.priority }}">{{ ticket.get_priority_display }}</span></td></tr>
+  <tr><td>Status</td><td><span class="badge badge-open">Open</span></td></tr>
+</table>
+<p>You will be notified when there are updates.</p>
+
+{% endblock %}

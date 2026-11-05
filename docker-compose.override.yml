@@ -1,0 +1,17 @@
+# Local development overrides — do NOT commit to production
+# Usage: docker compose up  (override is applied automatically)
+version: '3.9'
+
+services:
+  web:
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: "dev-secret-key-not-for-production"
+
+  nginx:
+    ports:
+      - "80:80"   # HTTP only for dev
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_files:/app/staticfiles:ro
+      - media_files:/app/media:ro

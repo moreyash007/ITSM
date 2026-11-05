@@ -1,0 +1,77 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# Fill the "sync: false" secrets in the Render dashboard on first deploy.
+services:
+  - type: web
+    name: itsm-web
+    runtime: docker
+    plan: starter
+    healthCheckPath: /users/login/
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ALLOWED_HOSTS
+        sync: false          # e.g. itsm-web.onrender.com your-domain.com
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false          # e.g. https://itsm-web.onrender.com
+      - key: POSTGRES_DB
+        fromDatabase: {name: itsm-db, property: database}
+      - key: POSTGRES_USER
+        fromDatabase: {name: itsm-db, property: user}
+      - key: POSTGRES_PASSWORD
+        fromDatabase: {name: itsm-db, property: password}
+      - key: POSTGRES_HOST
+        fromDatabase: {name: itsm-db, property: host}
+      - key: POSTGRES_PORT
+        fromDatabase: {name: itsm-db, property: port}
+      - key: EMAIL_BACKEND
+        value: django.core.mail.backends.smtp.EmailBackend
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+
+  - type: cron
+    name: itsm-sla-check
+    runtime: docker
+    schedule: "*/5 * * * *"
+    dockerCommand: python manage.py check_sla
+    envVars:
+      - fromService: {type: web, name: itsm-web, envVarKey: SECRET_KEY}
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: POSTGRES_DB
+        fromDatabase: {name: itsm-db, property: database}
+      - key: POSTGRES_USER
+        fromDatabase: {name: itsm-db, property: user}
+      - key: POSTGRES_PASSWORD
+        fromDatabase: {name: itsm-db, property: password}
+      - key: POSTGRES_HOST
+        fromDatabase: {name: itsm-db, property: host}
+      - key: POSTGRES_PORT
+        fromDatabase: {name: itsm-db, property: port}
+      - key: EMAIL_BACKEND
+        value: django.core.mail.backends.smtp.EmailBackend
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+
+databases:
+  - name: itsm-db
+    plan: basic-256mb

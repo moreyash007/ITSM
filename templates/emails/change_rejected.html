@@ -1,0 +1,11 @@
+{% extends 'emails/base_email.html' %}
+{% block subject %}Change Rejected: {{ change.change_id }}{% endblock %}
+{% block body %}
+<p>Your change request has been rejected.</p>
+<table class="meta-table">
+  <tr><td>Change</td><td>{{ change.change_id }}</td></tr>
+  <tr><td>Title</td><td>{{ change.title }}</td></tr>
+</table>
+<p>Please review the feedback in the approvals section and revise accordingly.</p>
+
+{% endblock %}

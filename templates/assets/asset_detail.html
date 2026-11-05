@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ asset.asset_tag }} — ITSM Suite{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'assets:list' %}">Assets</a><span class="sep">›</span><span class="current">{{ asset.asset_tag }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="ticket-id" style="font-size:14px;">{{ asset.asset_tag }}</span>
+      <span class="badge badge--{{ asset.status }}">{{ asset.get_status_display }}</span>
+      <span class="badge badge--pending">{{ asset.get_asset_type_display }}</span>
+    </div>
+    <div class="page-header__title" style="margin-top:6px;">{{ asset.name }}</div>
+  </div>
+  <div class="page-header__actions">
+    {% if user.is_agent %}
+      <a href="{% url 'assets:edit' asset.pk %}" class="btn btn--secondary">Edit</a>
+      {% if asset.status != 'retired' %}
+      <form method="post" action="{% url 'assets:retire' asset.pk %}" style="display:inline" onsubmit="return confirm('Retire this asset?')">
+        {% csrf_token %}<button type="submit" class="btn btn--danger btn--sm">Retire Asset</button>
+      </form>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="detail-layout">
+  <div class="detail-body">
+    <div class="card">
+      <div class="card__header"><span class="card__title">Hardware Details</span></div>
+      <div class="card__body">
+        <div class="meta-grid">
+          <div class="meta-item"><span class="meta-label">Manufacturer</span><span class="meta-value">{{ asset.manufacturer|default:"—" }}</span></div>
+          <div class="meta-item"><span class="meta-label">Model</span><span class="meta-value">{{ asset.model_number|default:"—" }}</span></div>
+          <div class="meta-item"><span class="meta-label">Serial Number</span><span class="meta-value" style="font-family:var(--font-mono);">{{ asset.serial_number|default:"—" }}</span></div>
+          <div class="meta-item"><span class="meta-label">OS / Version</span><span class="meta-value">{{ asset.os_version|default:"—" }}</span></div>
+          <div class="meta-item"><span class="meta-label">IP Address</span><span class="meta-value" style="font-family:var(--font-mono);">{{ asset.ip_address|default:"—" }}</span></div>
+          <div class="meta-item"><span class="meta-label">MAC Address</span><span class="meta-value" style="font-family:var(--font-mono);">{{ asset.mac_address|default:"—" }}</span></div>
+          <div class="meta-item"><span class="meta-label">Location</span><span class="meta-value">{{ asset.location|default:"—" }}</span></div>
+          <div class="meta-item"><span class="meta-label">Department</span><span class="meta-value">{{ asset.department|default:"—" }}</span></div>
+          <div class="meta-item"><span class="meta-label">Purchase Date</span><span class="meta-value">{{ asset.purchase_date|date:"d M Y"|default:"—" }}</span></div>
+          <div class="meta-item"><span class="meta-label">Warranty Expiry</span><span class="meta-value">{{ asset.warranty_expiry|date:"d M Y"|default:"—" }}</span></div>
+          {% if asset.purchase_cost %}
+          <div class="meta-item"><span class="meta-label">Purchase Cost</span><span class="meta-value">₹{{ asset.purchase_cost }}</span></div>
+          {% endif %}
+        </div>
+        {% if asset.notes %}
+        <div style="margin-top:16px;">
+          <div class="meta-label" style="margin-bottom:6px;">Notes</div>
+          <p class="description-text">{{ asset.notes }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="card">
+      <div class="card__header"><span class="card__title">Change History</span></div>
+      <div class="card__body">
+        <div class="history-list">
+          {% for h in history %}
+          <div class="history-item">
+            <span>{{ h.changed_at|date:"d M, H:i" }}</span>
+            <span class="h-field">{{ h.changed_by.username }}</span>
+            <span>—</span>
+            <span style="font-weight:500;">{{ h.action }}</span>
+            {% if h.details %}<span style="color:var(--text-secondary);">{{ h.details }}</span>{% endif %}
+          </div>
+          {% empty %}
+          <p style="color:var(--text-muted);font-size:13px;">No history yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-sidebar">
+    <div class="card">
+      <div class="card__header"><span class="card__title">Assignment</span></div>
+      <div class="card__body">
+        <div class="meta-grid">
+          <div class="meta-item form-full">
+            <span class="meta-label">Assigned To</span>
+            <span class="meta-value">{{ asset.assigned_to.get_full_name|default:"Unassigned" }}</span>
+          </div>
+          <div class="meta-item form-full">
+            <span class="meta-label">Category</span>
+            <span class="meta-value">{{ asset.category.name|default:"—" }}</span>
+          </div>
+          <div class="meta-item form-full">
+            <span class="meta-label">Added to CMDB</span>
+            <span class="meta-value">{{ asset.created_at|date:"d M Y" }}</span>
+          </div>
+          <div class="meta-item form-full">
+            <span class="meta-label">Last Updated</span>
+            <span class="meta-value">{{ asset.updated_at|date:"d M Y, H:i" }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

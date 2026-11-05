@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: Inter, Arial, sans-serif; background: #0d0f14; color: #e8eaf0; margin: 0; padding: 0; }
+  .wrapper { max-width: 560px; margin: 32px auto; }
+  .header { background: #13161e; border-radius: 8px 8px 0 0; padding: 24px 28px; border-bottom: 2px solid #4f7cff; }
+  .header h1 { margin: 0; font-size: 18px; color: #e8eaf0; }
+  .header .brand { font-size: 12px; color: #525a72; margin-bottom: 4px; letter-spacing: 1px; text-transform: uppercase; }
+  .body { background: #13161e; padding: 24px 28px; }
+  .body p { color: #8b93a8; font-size: 14px; line-height: 1.7; margin: 0 0 14px; }
+  .meta-table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  .meta-table td { padding: 8px 12px; font-size: 13px; border-bottom: 1px solid #252a38; }
+  .meta-table td:first-child { color: #525a72; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; width: 120px; }
+  .meta-table td:last-child { color: #e8eaf0; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge-open { background: rgba(79,195,247,0.15); color: #4fc3f7; }
+  .badge-resolved { background: rgba(52,208,88,0.12); color: #34d058; }
+  .badge-critical { background: rgba(255,77,77,0.12); color: #ff4d4d; }
+  .badge-high { background: rgba(255,140,66,0.12); color: #ff8c42; }
+  .badge-medium { background: rgba(240,180,41,0.12); color: #f0b429; }
+  .badge-low { background: rgba(52,208,88,0.12); color: #34d058; }
+  .cta { display: inline-block; margin: 16px 0; padding: 10px 22px; background: #4f7cff; color: #fff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; }
+  .footer { background: #0d0f14; border-radius: 0 0 8px 8px; padding: 16px 28px; }
+  .footer p { font-size: 11px; color: #525a72; margin: 0; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <div class="brand">ITSM Suite</div>
+    <h1>{% block subject %}Notification{% endblock %}</h1>
+  </div>
+  <div class="body">
+    {% block body %}{% endblock %}
+  </div>
+  <div class="footer">
+    <p>This is an automated message from ITSM Suite. Do not reply to this email.</p>
+  </div>
+</div>
+</body>
+</html>

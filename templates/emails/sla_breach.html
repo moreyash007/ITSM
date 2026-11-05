@@ -1,0 +1,13 @@
+{% extends 'emails/base_email.html' %}
+{% block subject %}⚠ SLA BREACH: {{ ticket.ticket_id }}{% endblock %}
+{% block body %}
+<p style="color:#ff4d4d;font-weight:600;">This ticket has breached its SLA due date and requires immediate attention.</p>
+<table class="meta-table">
+  <tr><td>Ticket</td><td>{{ ticket.ticket_id }}</td></tr>
+  <tr><td>Title</td><td>{{ ticket.title }}</td></tr>
+  <tr><td>Priority</td><td><span class="badge badge-{{ ticket.priority }}">{{ ticket.get_priority_display }}</span></td></tr>
+  <tr><td>Due Date</td><td style="color:#ff4d4d;">{{ ticket.sla.resolution_due|date:"d M Y, H:i" }}</td></tr>
+  <tr><td>Status</td><td>{{ ticket.get_status_display }}</td></tr>
+</table>
+
+{% endblock %}

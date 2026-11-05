@@ -1,0 +1,13 @@
+{% extends 'emails/base_email.html' %}
+{% block subject %}Ticket Resolved: {{ ticket.ticket_id }}{% endblock %}
+{% block body %}
+<p>Hi {{ ticket.created_by.first_name|default:ticket.created_by.username }}, your ticket has been resolved.</p>
+<table class="meta-table">
+  <tr><td>Ticket</td><td>{{ ticket.ticket_id }}</td></tr>
+  <tr><td>Title</td><td>{{ ticket.title }}</td></tr>
+  <tr><td>Status</td><td><span class="badge badge-resolved">Resolved</span></td></tr>
+  <tr><td>Resolved At</td><td>{{ ticket.resolved_at|date:"d M Y, H:i" }}</td></tr>
+</table>
+<p>If your issue persists, please open a new ticket.</p>
+
+{% endblock %}

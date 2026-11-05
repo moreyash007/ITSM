@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{{ incident.incident_id }} — ITSM Suite{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'incidents:list' %}">Incidents</a><span class="sep">›</span><span class="current">{{ incident.incident_id }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="ticket-id" style="font-size:14px;">{{ incident.incident_id }}</span>
+      <span class="badge severity--{{ incident.severity }}">{{ incident.get_severity_display }}</span>
+      <span class="badge badge--{{ incident.status }}">{{ incident.get_status_display }}</span>
+    </div>
+    <div class="page-header__title" style="margin-top:6px;">{{ incident.title }}</div>
+  </div>
+  <div class="page-header__actions">
+    {% if user.is_agent %}
+      <a href="{% url 'incidents:edit' incident.pk %}" class="btn btn--secondary">Edit</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="detail-layout">
+  <div class="detail-body">
+    <div class="card">
+      <div class="card__header"><span class="card__title">Description</span></div>
+      <div class="card__body">
+        <p class="description-text">{{ incident.description }}</p>
+        {% if incident.affected_services %}
+          <div style="margin-top:14px;">
+            <span class="meta-label">Affected Services:</span>
+            <span style="font-size:13px;color:var(--text-secondary);"> {{ incident.affected_services }}</span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if incident.root_cause or incident.resolution %}
+    <div class="card">
+      <div class="card__header"><span class="card__title">Root Cause & Resolution</span></div>
+      <div class="card__body">
+        {% if incident.root_cause %}
+        <div style="margin-bottom:14px;">
+          <div class="meta-label" style="margin-bottom:6px;">Root Cause</div>
+          <p class="description-text">{{ incident.root_cause }}</p>
+        </div>
+        {% endif %}
+        {% if incident.resolution %}
+        <div>
+          <div class="meta-label" style="margin-bottom:6px;">Resolution</div>
+          <p class="description-text">{{ incident.resolution }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card__header"><span class="card__title">Updates ({{ updates.count }})</span></div>
+      <div class="card__body">
+        <div class="timeline" style="margin-bottom:24px;">
+          {% for update in updates %}
+          <div class="timeline-item">
+            <div class="timeline-avatar">{{ update.author.first_name|first|default:update.author.username|first|upper }}</div>
+            <div class="timeline-content">
+              <div class="timeline-meta">
+                <span class="timeline-author">{{ update.author.get_full_name|default:update.author.username }}</span>
+                <span class="timeline-time">{{ update.created_at|date:"d M Y, H:i" }}</span>
+                <span class="badge badge--{{ update.status_at_time }}" style="font-size:10px;">{{ update.status_at_time }}</span>
+              </div>
+              <div class="timeline-body">{{ update.message }}</div>
+            </div>
+          </div>
+          {% empty %}
+          <p style="color:var(--text-muted);font-size:13px;">No updates yet.</p>
+          {% endfor %}
+        </div>
+
+        {% if user.is_agent and update_form %}
+        <form method="post">
+          {% csrf_token %}
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Post Update</label>
+            {% render_field update_form.message class="form-control" %}
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Update Status</label>
+            {% render_field update_form.new_status class="form-control" %}
+          </div>
+          <button type="submit" class="btn btn--primary">Post Update</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-sidebar">
+    <div class="card">
+      <div class="card__header"><span class="card__title">Details</span></div>
+      <div class="card__body">
+        <div class="meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Reported By</span>
+            <span class="meta-value">{{ incident.reported_by.get_full_name|default:incident.reported_by.username }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Assigned To</span>
+            <span class="meta-value">{{ incident.assigned_to.get_full_name|default:"—" }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Duration</span>
+            <span class="meta-value" style="font-family:var(--font-mono);">{{ incident.duration }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Created</span>
+            <span class="meta-value">{{ incident.created_at|date:"d M Y, H:i" }}</span>
+          </div>
+          {% if incident.resolved_at %}
+          <div class="meta-item">
+            <span class="meta-label">Resolved At</span>
+            <span class="meta-value">{{ incident.resolved_at|date:"d M Y, H:i" }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

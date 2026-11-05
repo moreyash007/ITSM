@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}ITSM Suite{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% load static %}{% static 'css/main.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+{% load static %}
+
+{% if user.is_authenticated %}
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar__brand">
+      <div class="brand-icon">⚙</div>
+      <span class="brand-name">ITSM Suite</span>
+    </div>
+
+    <nav class="sidebar__nav">
+      <div class="nav-section">
+        <span class="nav-label">Operations</span>
+        <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+          <span class="nav-icon">📊</span> Dashboard
+        </a>
+        <a href="{% url 'tickets:list' %}" class="nav-item {% if request.resolver_match.namespace == 'tickets' %}active{% endif %}">
+          <span class="nav-icon">🎫</span> Tickets
+        </a>
+        <a href="{% url 'incidents:list' %}" class="nav-item {% if request.resolver_match.namespace == 'incidents' %}active{% endif %}">
+          <span class="nav-icon">🚨</span> Incidents
+        </a>
+        <a href="{% url 'changes:list' %}" class="nav-item {% if request.resolver_match.namespace == 'changes' %}active{% endif %}">
+          <span class="nav-icon">🔄</span> Changes
+        </a>
+        <a href="{% url 'assets:list' %}" class="nav-item {% if request.resolver_match.namespace == 'assets' %}active{% endif %}">
+          <span class="nav-icon">🖥</span> Assets / CMDB
+        </a>
+      </div>
+
+      {% if user.is_admin_role %}
+      <div class="nav-section">
+        <span class="nav-label">Administration</span>
+        <a href="{% url 'users:list' %}" class="nav-item {% if request.resolver_match.namespace == 'users' and 'list' in request.resolver_match.url_name %}active{% endif %}">
+          <span class="nav-icon">👥</span> Users
+        </a>
+        <a href="/admin/" class="nav-item">
+          <span class="nav-icon">🔧</span> Django Admin
+        </a>
+      </div>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar__user">
+      <div class="user-avatar">{{ user.first_name|first|default:user.username|first|upper }}</div>
+      <div class="user-info">
+        <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
+        <span class="user-role badge badge--{{ user.role }}">{{ user.get_role_display }}</span>
+      </div>
+      <a href="{% url 'users:logout' %}" class="logout-btn" title="Logout">⏻</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <header class="topbar">
+      <button class="topbar__menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <div class="topbar__breadcrumb">{% block breadcrumb %}{% endblock %}</div>
+      <div class="topbar__actions">
+        <a href="{% url 'tickets:create' %}" class="btn btn--sm btn--primary">+ New Ticket</a>
+        <a href="{% url 'users:profile' %}" class="topbar__profile">{{ user.first_name|first|default:user.username|first|upper }}</a>
+      </div>
+    </header>
+
+    <div class="content">
+      {% if messages %}
+        <div class="messages">
+          {% for message in messages %}
+            <div class="alert alert--{{ message.tags }}">
+              {{ message }}
+              <button onclick="this.parentElement.remove()" class="alert__close">×</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+
+{% else %}
+  {% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="{% static 'js/main.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

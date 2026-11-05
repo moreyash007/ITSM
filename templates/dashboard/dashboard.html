@@ -1,0 +1,358 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard — ITSM Suite{% endblock %}
+{% block breadcrumb %}<span class="current">Dashboard</span>{% endblock %}
+
+{% block extra_css %}
+<style>
+.dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+.dash-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.dash-grid-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.kpi { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
+.kpi__label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 8px; }
+.kpi__value { font-size: 36px; font-weight: 700; font-family: var(--font-mono); line-height: 1; }
+.kpi__sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+.kpi--blue .kpi__value { color: #4fc3f7; }
+.kpi--yellow .kpi__value { color: #f0b429; }
+.kpi--green .kpi__value { color: #34d058; }
+.kpi--red .kpi__value { color: #ff4d4d; }
+.kpi--accent .kpi__value { color: #4f7cff; }
+.chart-wrap { position: relative; height: 220px; }
+.chart-wrap--tall { height: 280px; }
+.leaderboard-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.leaderboard-row:last-child { border-bottom: none; }
+.lb-rank { font-family: var(--font-mono); font-size: 13px; color: var(--text-muted); width: 24px; }
+.lb-name { flex: 1; font-size: 13.5px; font-weight: 500; }
+.lb-count { font-family: var(--font-mono); font-size: 14px; color: var(--success); font-weight: 700; }
+.sla-bar { height: 6px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+.sla-bar__fill { height: 100%; border-radius: 3px; background: var(--success); transition: width 0.6s ease; }
+.sla-bar__fill--warn { background: var(--warning); }
+.sla-bar__fill--bad { background: var(--danger); }
+@media (max-width: 1100px) {
+  .dash-grid { grid-template-columns: repeat(2, 1fr); }
+  .dash-grid-3 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 700px) {
+  .dash-grid { grid-template-columns: 1fr 1fr; }
+  .dash-grid-2, .dash-grid-3 { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-header__title">Dashboard</div>
+    <div class="page-header__subtitle">Real-time overview of your IT operations</div>
+  </div>
+</div>
+
+<!-- KPI Row -->
+<div class="dash-grid">
+  <div class="kpi kpi--blue">
+    <div class="kpi__label">Open Tickets</div>
+    <div class="kpi__value">{{ open_tickets }}</div>
+    <div class="kpi__sub">{{ total_tickets }} total</div>
+  </div>
+  <div class="kpi kpi--red">
+    <div class="kpi__label">Active Incidents</div>
+    <div class="kpi__value">{{ open_incidents_count }}</div>
+    <div class="kpi__sub">Unresolved</div>
+  </div>
+  <div class="kpi kpi--yellow">
+    <div class="kpi__label">Pending Changes</div>
+    <div class="kpi__value">{{ pending_changes }}</div>
+    <div class="kpi__sub">Awaiting approval</div>
+  </div>
+  <div class="kpi {% if sla_compliance >= 90 %}kpi--green{% elif sla_compliance >= 70 %}kpi--yellow{% else %}kpi--red{% endif %}">
+    <div class="kpi__label">SLA Compliance</div>
+    <div class="kpi__value">{{ sla_compliance }}%</div>
+    <div class="sla-bar">
+      <div class="sla-bar__fill {% if sla_compliance < 70 %}sla-bar__fill--bad{% elif sla_compliance < 90 %}sla-bar__fill--warn{% endif %}"
+           style="width: {{ sla_compliance }}%"></div>
+    </div>
+    <div class="kpi__sub">{{ sla_breached }} breach{{ sla_breached|pluralize:"es" }} (30d)</div>
+  </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="dash-grid-3">
+  <!-- Ticket volume (line chart) -->
+  <div class="card">
+    <div class="card__header"><span class="card__title">Ticket Volume — Last 30 Days</span></div>
+    <div class="card__body">
+      <div class="chart-wrap--tall" style="height:240px;">
+        <canvas id="volumeChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <!-- Tickets by priority (doughnut) -->
+  <div class="card">
+    <div class="card__header"><span class="card__title">By Priority</span></div>
+    <div class="card__body">
+      <div class="chart-wrap">
+        <canvas id="priorityChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <!-- Tickets by status (doughnut) -->
+  <div class="card">
+    <div class="card__header"><span class="card__title">By Status</span></div>
+    <div class="card__body">
+      <div class="chart-wrap">
+        <canvas id="statusChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="dash-grid-2">
+  <!-- Incidents by severity (bar) -->
+  <div class="card">
+    <div class="card__header"><span class="card__title">Incidents by Severity (30d)</span></div>
+    <div class="card__body">
+      <div class="chart-wrap">
+        <canvas id="incidentChart"></canvas>
+      </div>
+      {% if avg_inc_resolution %}
+      <div style="margin-top:12px;font-size:12px;color:var(--text-muted);">
+        Avg resolution time: <span style="color:var(--text-primary);font-family:var(--font-mono);">{{ avg_inc_resolution }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <!-- Assets by status (horizontal bar) -->
+  <div class="card">
+    <div class="card__header"><span class="card__title">Asset Status</span></div>
+    <div class="card__body">
+      <div class="chart-wrap">
+        <canvas id="assetChart"></canvas>
+      </div>
+      <div style="margin-top:12px;font-size:12px;color:var(--text-muted);">
+        Total assets in CMDB: <span style="color:var(--text-primary);font-family:var(--font-mono);">{{ total_assets }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Row -->
+<div class="dash-grid-2">
+  <!-- Recent tickets -->
+  <div class="card">
+    <div class="card__header">
+      <span class="card__title">Recent Tickets</span>
+      <a href="{% url 'tickets:list' %}" class="btn btn--secondary btn--sm">View All</a>
+    </div>
+    <div class="card__body" style="padding:0;">
+      <table style="width:100%;font-size:13px;">
+        <tbody>
+          {% for t in recent_tickets %}
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:10px 16px;">
+              <a href="{% url 'tickets:detail' t.pk %}" style="font-weight:500;color:var(--text-primary);text-decoration:none;">
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">{{ t.ticket_id }}</span><br>
+                {{ t.title|truncatechars:45 }}
+              </a>
+            </td>
+            <td style="padding:10px 12px;white-space:nowrap;">
+              <span class="badge priority--{{ t.priority }}">{{ t.get_priority_display }}</span>
+            </td>
+            <td style="padding:10px 16px;white-space:nowrap;">
+              <span class="badge badge--{{ t.status }}">{{ t.get_status_display }}</span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" style="padding:24px;text-align:center;color:var(--text-muted);">No recent tickets.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Agent leaderboard or recent incidents -->
+  {% if leaderboard %}
+  <div class="card">
+    <div class="card__header"><span class="card__title">Top Agents — Last 7 Days</span></div>
+    <div class="card__body">
+      {% for agent in leaderboard %}
+      <div class="leaderboard-row">
+        <div class="lb-rank">{{ forloop.counter }}</div>
+        <div class="user-avatar" style="width:28px;height:28px;font-size:11px;">
+          {{ agent.first_name|first|default:agent.username|first|upper }}
+        </div>
+        <div class="lb-name">{{ agent.get_full_name|default:agent.username }}</div>
+        <div class="lb-count">{{ agent.resolved_count }} resolved</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="card__header">
+      <span class="card__title">Recent Incidents</span>
+      <a href="{% url 'incidents:list' %}" class="btn btn--secondary btn--sm">View All</a>
+    </div>
+    <div class="card__body" style="padding:0;">
+      <table style="width:100%;font-size:13px;">
+        <tbody>
+          {% for inc in recent_incidents %}
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:10px 16px;">
+              <a href="{% url 'incidents:detail' inc.pk %}" style="font-weight:500;color:var(--text-primary);text-decoration:none;">
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">{{ inc.incident_id }}</span><br>
+                {{ inc.title|truncatechars:45 }}
+              </a>
+            </td>
+            <td style="padding:10px 12px;"><span class="badge severity--{{ inc.severity }}">{{ inc.get_severity_display }}</span></td>
+            <td style="padding:10px 16px;"><span class="badge badge--{{ inc.status }}">{{ inc.get_status_display }}</span></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" style="padding:24px;text-align:center;color:var(--text-muted);">No active incidents.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+Chart.defaults.color = '#8b93a8';
+Chart.defaults.borderColor = '#252a38';
+Chart.defaults.font.family = 'Inter, sans-serif';
+Chart.defaults.font.size = 12;
+
+const COLORS = {
+  blue:   '#4f7cff',
+  green:  '#34d058',
+  yellow: '#f0b429',
+  red:    '#ff4d4d',
+  orange: '#ff8c42',
+  teal:   '#4fc3f7',
+  muted:  '#525a72',
+};
+
+// Volume chart
+const volumeData = {{ daily_tickets|safe }};
+new Chart(document.getElementById('volumeChart'), {
+  type: 'line',
+  data: {
+    labels: volumeData.map(d => d.date),
+    datasets: [{
+      label: 'Tickets',
+      data: volumeData.map(d => d.count),
+      borderColor: COLORS.blue,
+      backgroundColor: 'rgba(79,124,255,0.1)',
+      fill: true,
+      tension: 0.4,
+      pointRadius: 3,
+      pointBackgroundColor: COLORS.blue,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: '#1a1e28' }, ticks: { maxTicksLimit: 8 } },
+      y: { grid: { color: '#1a1e28' }, beginAtZero: true, ticks: { stepSize: 1 } }
+    }
+  }
+});
+
+// Priority doughnut
+const priorityData = {{ ticket_by_priority|safe }};
+new Chart(document.getElementById('priorityChart'), {
+  type: 'doughnut',
+  data: {
+    labels: Object.keys(priorityData).map(k => k.charAt(0).toUpperCase() + k.slice(1)),
+    datasets: [{
+      data: Object.values(priorityData),
+      backgroundColor: [COLORS.green, COLORS.yellow, COLORS.orange, COLORS.red],
+      borderWidth: 2,
+      borderColor: '#13161e',
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { padding: 12 } } },
+    cutout: '65%',
+  }
+});
+
+// Status doughnut
+const statusData = {{ ticket_by_status|safe }};
+const statusColors = { open: COLORS.teal, in_progress: COLORS.yellow, pending: COLORS.muted, resolved: COLORS.green, closed: '#2e3448' };
+new Chart(document.getElementById('statusChart'), {
+  type: 'doughnut',
+  data: {
+    labels: Object.keys(statusData).map(k => k.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())),
+    datasets: [{
+      data: Object.values(statusData),
+      backgroundColor: Object.keys(statusData).map(k => statusColors[k] || COLORS.muted),
+      borderWidth: 2,
+      borderColor: '#13161e',
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { padding: 12 } } },
+    cutout: '65%',
+  }
+});
+
+// Incidents bar
+const incData = {{ incident_by_severity|safe }};
+const severityColors = { sev1: COLORS.red, sev2: COLORS.orange, sev3: COLORS.yellow, sev4: COLORS.green };
+new Chart(document.getElementById('incidentChart'), {
+  type: 'bar',
+  data: {
+    labels: Object.keys(incData).map(k => k.toUpperCase()),
+    datasets: [{
+      label: 'Incidents',
+      data: Object.values(incData),
+      backgroundColor: Object.keys(incData).map(k => severityColors[k] || COLORS.blue),
+      borderRadius: 4,
+      barThickness: 32,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: '#1a1e28' }, beginAtZero: true, ticks: { stepSize: 1 } }
+    }
+  }
+});
+
+// Assets horizontal bar
+const assetData = {{ asset_by_status|safe }};
+const assetColors = { in_use: COLORS.blue, available: COLORS.green, maintenance: COLORS.yellow, retired: COLORS.muted, disposed: '#2e3448' };
+new Chart(document.getElementById('assetChart'), {
+  type: 'bar',
+  data: {
+    labels: Object.keys(assetData).map(k => k.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())),
+    datasets: [{
+      label: 'Assets',
+      data: Object.values(assetData),
+      backgroundColor: Object.keys(assetData).map(k => assetColors[k] || COLORS.muted),
+      borderRadius: 4,
+      barThickness: 24,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: '#1a1e28' }, beginAtZero: true, ticks: { stepSize: 1 } },
+      y: { grid: { display: false } }
+    }
+  }
+});
+</script>
+{% endblock %}

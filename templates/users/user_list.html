@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Users — ITSM Suite{% endblock %}
+{% block breadcrumb %}<span class="current">User Management</span>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-header__title">User Management</div>
+    <div class="page-header__subtitle">Manage accounts, roles, and permissions</div>
+  </div>
+  <div class="page-header__actions">
+    <a href="{% url 'users:create' %}" class="btn btn--primary">+ New User</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Username</th><th>Full Name</th><th>Email</th><th>Role</th><th>Department</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for u in page_obj %}
+        <tr>
+          <td style="font-family:var(--font-mono);font-size:12.5px;">{{ u.username }}</td>
+          <td>{{ u.get_full_name|default:"—" }}</td>
+          <td style="color:var(--text-secondary);">{{ u.email|default:"—" }}</td>
+          <td><span class="badge badge--{{ u.role }}">{{ u.get_role_display }}</span></td>
+          <td>{{ u.department|default:"—" }}</td>
+          <td>
+            {% if u.is_active %}
+              <span class="badge badge--resolved">Active</span>
+            {% else %}
+              <span class="badge badge--closed">Inactive</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'users:edit' u.pk %}" class="btn btn--secondary btn--sm">Edit</a>
+            {% if u != request.user %}
+            <a href="{% url 'users:toggle' u.pk %}"
+               class="btn btn--sm {% if u.is_active %}btn--danger{% else %}btn--success{% endif %}"
+               onclick="return confirm('{% if u.is_active %}Deactivate{% else %}Activate{% endif %} {{ u.username }}?')">
+              {% if u.is_active %}Deactivate{% else %}Activate{% endif %}
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7"><div class="empty-state"><div class="empty-state__icon">👥</div><div class="empty-state__title">No users found</div></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div class="pagination" style="padding:16px;">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}">‹</a>{% endif %}
+    <span class="current">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">›</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

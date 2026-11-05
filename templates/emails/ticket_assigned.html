@@ -1,0 +1,13 @@
+{% extends 'emails/base_email.html' %}
+{% block subject %}Ticket Assigned: {{ ticket.ticket_id }}{% endblock %}
+{% block body %}
+<p>{{ assigned_by.get_full_name }} has assigned ticket {{ ticket.ticket_id }} to you.</p>
+<table class="meta-table">
+  <tr><td>Ticket</td><td>{{ ticket.ticket_id }}</td></tr>
+  <tr><td>Title</td><td>{{ ticket.title }}</td></tr>
+  <tr><td>Priority</td><td><span class="badge badge-{{ ticket.priority }}">{{ ticket.get_priority_display }}</span></td></tr>
+  <tr><td>Requester</td><td>{{ ticket.created_by.get_full_name }}</td></tr>
+  {% if ticket.due_date %}<tr><td>Due</td><td>{{ ticket.due_date|date:"d M Y, H:i" }}</td></tr>{% endif %}
+</table>
+
+{% endblock %}

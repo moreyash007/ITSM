@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{{ change.change_id }} — ITSM Suite{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'changes:list' %}">Changes</a><span class="sep">›</span><span class="current">{{ change.change_id }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="ticket-id" style="font-size:14px;">{{ change.change_id }}</span>
+      <span class="badge badge--{{ change.status }}">{{ change.get_status_display }}</span>
+      <span class="badge priority--{{ change.risk_level }}">{{ change.get_risk_level_display }} Risk</span>
+    </div>
+    <div class="page-header__title" style="margin-top:6px;">{{ change.title }}</div>
+  </div>
+  <div class="page-header__actions">
+    {% if change.status == 'draft' and change.requested_by == user %}
+      <a href="{% url 'changes:edit' change.pk %}" class="btn btn--secondary">Edit</a>
+      <form method="post" action="{% url 'changes:submit' change.pk %}" style="display:inline" onsubmit="return confirm('Submit for review?')">
+        {% csrf_token %}<button type="submit" class="btn btn--primary">Submit for Review</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="detail-layout">
+  <div class="detail-body">
+    <div class="card">
+      <div class="card__header"><span class="card__title">Change Details</span></div>
+      <div class="card__body" style="display:flex;flex-direction:column;gap:18px;">
+        <div>
+          <div class="meta-label" style="margin-bottom:6px;">Description</div>
+          <p class="description-text">{{ change.description }}</p>
+        </div>
+        <div>
+          <div class="meta-label" style="margin-bottom:6px;">Justification</div>
+          <p class="description-text">{{ change.justification }}</p>
+        </div>
+        <div>
+          <div class="meta-label" style="margin-bottom:6px;">Implementation Plan</div>
+          <p class="description-text">{{ change.implementation_plan }}</p>
+        </div>
+        <div>
+          <div class="meta-label" style="margin-bottom:6px;">Rollback Plan</div>
+          <p class="description-text">{{ change.rollback_plan }}</p>
+        </div>
+        {% if change.test_plan %}
+        <div>
+          <div class="meta-label" style="margin-bottom:6px;">Test Plan</div>
+          <p class="description-text">{{ change.test_plan }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Approvals -->
+    <div class="card">
+      <div class="card__header"><span class="card__title">Approvals</span></div>
+      <div class="card__body">
+        {% for approval in approvals %}
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+          <div class="timeline-avatar">{{ approval.approver.first_name|first|default:approval.approver.username|first|upper }}</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;">{{ approval.approver.get_full_name|default:approval.approver.username }}</div>
+            {% if approval.comments %}<div style="font-size:12.5px;color:var(--text-secondary);margin-top:2px;">{{ approval.comments }}</div>{% endif %}
+          </div>
+          <span class="badge badge--{{ approval.decision }}">{{ approval.get_decision_display }}</span>
+          <span style="font-size:11px;color:var(--text-muted);">{{ approval.decided_at|date:"d M, H:i" }}</span>
+        </div>
+        {% empty %}
+        <p style="color:var(--text-muted);font-size:13px;">No approvals yet.</p>
+        {% endfor %}
+
+        {% if approval_form %}
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
+          <div style="font-size:13.5px;font-weight:600;margin-bottom:14px;">Your Decision</div>
+          <form method="post">
+            {% csrf_token %}
+            <div class="form-group" style="margin-bottom:12px;">
+              <label>Decision</label>
+              {% render_field approval_form.decision class="form-control" %}
+            </div>
+            <div class="form-group" style="margin-bottom:14px;">
+              <label>Comments</label>
+              {% render_field approval_form.comments class="form-control" %}
+            </div>
+            <button type="submit" class="btn btn--primary">Submit Decision</button>
+          </form>
+        </div>
+        {% elif user_approval %}
+        <div style="margin-top:14px;padding:10px;background:var(--bg-elevated);border-radius:var(--radius);font-size:13px;color:var(--text-secondary);">
+          You already recorded your decision: <strong>{{ user_approval.get_decision_display }}</strong>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-sidebar">
+    <div class="card">
+      <div class="card__header"><span class="card__title">Info</span></div>
+      <div class="card__body">
+        <div class="meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Type</span>
+            <span class="meta-value">{{ change.get_change_type_display }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Requested By</span>
+            <span class="meta-value">{{ change.requested_by.get_full_name|default:change.requested_by.username }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Assigned To</span>
+            <span class="meta-value">{{ change.assigned_to.get_full_name|default:"—" }}</span>
+          </div>
+          {% if change.approved_by %}
+          <div class="meta-item">
+            <span class="meta-label">Approved By</span>
+            <span class="meta-value">{{ change.approved_by.get_full_name }}</span>
+          </div>
+          {% endif %}
+          {% if change.scheduled_start %}
+          <div class="meta-item form-full">
+            <span class="meta-label">Scheduled Window</span>
+            <span class="meta-value">{{ change.scheduled_start|date:"d M Y, H:i" }} → {{ change.scheduled_end|date:"H:i" }}</span>
+          </div>
+          {% endif %}
+          <div class="meta-item">
+            <span class="meta-label">Created</span>
+            <span class="meta-value">{{ change.created_at|date:"d M Y" }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

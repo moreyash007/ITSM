@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Incidents — ITSM Suite{% endblock %}
+{% block breadcrumb %}<span class="current">Incidents</span>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-header__title">Incidents</div>
+    <div class="page-header__subtitle">Track and manage service disruptions</div>
+  </div>
+  <div class="page-header__actions">
+    {% if user.is_agent %}
+      <a href="{% url 'incidents:create' %}" class="btn btn--primary">+ New Incident</a>
+    {% endif %}
+  </div>
+</div>
+
+<form method="get" class="filters-bar">
+  <select name="status">
+    <option value="">All Statuses</option>
+    {% for val, label in status_choices %}<option value="{{ val }}" {% if current_status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <select name="severity">
+    <option value="">All Severities</option>
+    {% for val, label in severity_choices %}<option value="{{ val }}" {% if current_severity == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <input type="text" name="q" value="{{ search|default:'' }}" placeholder="Search incidents...">
+  <button type="submit" class="btn btn--secondary">Filter</button>
+  <a href="{% url 'incidents:list' %}" class="btn btn--secondary">Clear</a>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Title</th>
+          <th>Severity</th>
+          <th>Status</th>
+          <th>Reported By</th>
+          <th>Assigned To</th>
+          <th>Duration</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inc in page_obj %}
+        <tr>
+          <td><span class="ticket-id">{{ inc.incident_id }}</span></td>
+          <td><a href="{% url 'incidents:detail' inc.pk %}">{{ inc.title }}</a></td>
+          <td><span class="badge severity--{{ inc.severity }}">{{ inc.get_severity_display }}</span></td>
+          <td><span class="badge badge--{{ inc.status }}">{{ inc.get_status_display }}</span></td>
+          <td>{{ inc.reported_by.get_full_name|default:inc.reported_by.username }}</td>
+          <td>{{ inc.assigned_to.get_full_name|default:"—" }}</td>
+          <td style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);">{{ inc.duration }}</td>
+          <td style="white-space:nowrap;color:var(--text-muted);">{{ inc.created_at|date:"d M, H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8"><div class="empty-state"><div class="empty-state__icon">🚨</div><div class="empty-state__title">No incidents found</div></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

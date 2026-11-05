@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tickets — ITSM Suite{% endblock %}
+
+{% block breadcrumb %}
+  <span class="current">Tickets</span>
+{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card stat-card--open">
+    <div class="stat-card__label">Open</div>
+    <div class="stat-card__value">{{ stats.open }}</div>
+  </div>
+  <div class="stat-card stat-card--progress">
+    <div class="stat-card__label">In Progress</div>
+    <div class="stat-card__value">{{ stats.in_progress }}</div>
+  </div>
+  <div class="stat-card stat-card--pending">
+    <div class="stat-card__label">Pending</div>
+    <div class="stat-card__value">{{ stats.pending }}</div>
+  </div>
+  <div class="stat-card stat-card--resolved">
+    <div class="stat-card__label">Resolved</div>
+    <div class="stat-card__value">{{ stats.resolved }}</div>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="page-header">
+  <div>
+    <div class="page-header__title">Tickets</div>
+    <div class="page-header__subtitle">Support requests and helpdesk queue</div>
+  </div>
+  <div class="page-header__actions">
+    <a href="{% url 'tickets:create' %}" class="btn btn--primary">+ New Ticket</a>
+  </div>
+</div>
+
+<!-- Filters -->
+<form method="get" class="filters-bar">
+  <input type="text" name="q" value="{{ search|default:'' }}" placeholder="Search tickets...">
+  <select name="status">
+    <option value="">All Statuses</option>
+    {% for val, label in status_choices %}
+      <option value="{{ val }}" {% if current_status == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <select name="priority">
+    <option value="">All Priorities</option>
+    {% for val, label in priority_choices %}
+      <option value="{{ val }}" {% if current_priority == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  {% if user.is_agent %}
+  <select name="assigned">
+    <option value="">All Tickets</option>
+    <option value="me" {% if assigned == 'me' %}selected{% endif %}>Assigned to Me</option>
+    <option value="unassigned" {% if assigned == 'unassigned' %}selected{% endif %}>Unassigned</option>
+  </select>
+  {% endif %}
+  <button type="submit" class="btn btn--secondary">Filter</button>
+  <a href="{% url 'tickets:list' %}" class="btn btn--secondary">Clear</a>
+</form>
+
+<!-- Table -->
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Title</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Category</th>
+          <th>Requester</th>
+          <th>Assigned To</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ticket in page_obj %}
+        <tr>
+          <td><span class="ticket-id">{{ ticket.ticket_id }}</span></td>
+          <td>
+            <a href="{% url 'tickets:detail' ticket.pk %}">{{ ticket.title }}</a>
+            {% if ticket.is_overdue %}<span class="overdue-tag" style="margin-left:6px;">Overdue</span>{% endif %}
+          </td>
+          <td><span class="badge priority--{{ ticket.priority }}">{{ ticket.get_priority_display }}</span></td>
+          <td><span class="badge badge--{{ ticket.status }}">{{ ticket.get_status_display }}</span></td>
+          <td>{{ ticket.category.name|default:"—" }}</td>
+          <td>{{ ticket.created_by.get_full_name|default:ticket.created_by.username }}</td>
+          <td>{{ ticket.assigned_to.get_full_name|default:"Unassigned" }}</td>
+          <td style="white-space:nowrap;color:var(--text-muted);">{{ ticket.created_at|date:"d M, H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8">
+            <div class="empty-state">
+              <div class="empty-state__icon">🎫</div>
+              <div class="empty-state__title">No tickets found</div>
+              <div class="empty-state__desc">Try adjusting your filters or <a href="{% url 'tickets:create' %}">create a new ticket</a>.</div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div class="pagination" style="padding:16px;">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if search %}&q={{ search }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">‹</a>{% endif %}
+    <span class="current">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if search %}&q={{ search }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">›</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

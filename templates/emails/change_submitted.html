@@ -1,0 +1,14 @@
+{% extends 'emails/base_email.html' %}
+{% block subject %}Change Request Submitted: {{ change.change_id }}{% endblock %}
+{% block body %}
+<p>A change request requires your review and approval.</p>
+<table class="meta-table">
+  <tr><td>Change</td><td>{{ change.change_id }}</td></tr>
+  <tr><td>Title</td><td>{{ change.title }}</td></tr>
+  <tr><td>Type</td><td>{{ change.get_change_type_display }}</td></tr>
+  <tr><td>Risk</td><td><span class="badge badge-{{ change.risk_level }}">{{ change.get_risk_level_display }}</span></td></tr>
+  <tr><td>Requested By</td><td>{{ change.requested_by.get_full_name }}</td></tr>
+  {% if change.scheduled_start %}<tr><td>Scheduled</td><td>{{ change.scheduled_start|date:"d M Y, H:i" }}</td></tr>{% endif %}
+</table>
+
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends 'emails/base_email.html' %}
+{% block subject %}Change Approved: {{ change.change_id }}{% endblock %}
+{% block body %}
+<p>Your change request has been approved and can proceed.</p>
+<table class="meta-table">
+  <tr><td>Change</td><td>{{ change.change_id }}</td></tr>
+  <tr><td>Title</td><td>{{ change.title }}</td></tr>
+  <tr><td>Approved By</td><td>{{ change.approved_by.get_full_name }}</td></tr>
+  <tr><td>Approved At</td><td>{{ change.approved_at|date:"d M Y, H:i" }}</td></tr>
+</table>
+
+{% endblock %}

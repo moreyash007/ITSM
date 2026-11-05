@@ -1,0 +1,13 @@
+{% extends 'emails/base_email.html' %}
+{% block subject %}[{{ incident.get_severity_display }}] Incident: {{ incident.incident_id }}{% endblock %}
+{% block body %}
+<p>A new incident has been raised and assigned to you.</p>
+<table class="meta-table">
+  <tr><td>Incident</td><td>{{ incident.incident_id }}</td></tr>
+  <tr><td>Title</td><td>{{ incident.title }}</td></tr>
+  <tr><td>Severity</td><td><span class="badge badge-{{ incident.severity }}">{{ incident.get_severity_display }}</span></td></tr>
+  <tr><td>Affected</td><td>{{ incident.affected_services|default:"—" }}</td></tr>
+</table>
+<p>{{ incident.description|truncatechars:300 }}</p>
+
+{% endblock %}

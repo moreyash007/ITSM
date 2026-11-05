@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{{ title }} — ITSM Suite{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header__title">{{ title }}</div>
+</div>
+
+<div class="card" style="max-width:780px;">
+  <div class="card__body">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-grid">
+        {% for field in form %}
+          {% if field.field.widget.attrs.rows %}
+            <div class="form-group form-full">
+          {% else %}
+            <div class="form-group">
+          {% endif %}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {% if field.field.widget.input_type == 'checkbox' %}
+              <div class="form-check">
+                {% render_field field %}
+                <span style="font-size:13px;color:var(--text-secondary);">{{ field.help_text }}</span>
+              </div>
+            {% else %}
+              {% render_field field class="form-control" %}
+              {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+            {% endif %}
+            {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      <div class="form-actions">
+        <a href="javascript:history.back()" class="btn btn--secondary">Cancel</a>
+        <button type="submit" class="btn btn--primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
